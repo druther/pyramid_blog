@@ -19,6 +19,10 @@ from sqlalchemy.orm import (
 
 from zope.sqlalchemy import ZopeTransactionExtension
 
+from webhelpers.text import urlify #<- will generate slugs
+from webhelpers.paginate import PageURL_WebOb, Page #<- provides pagination
+from webhelpers.date import time_ago_in_words #<- human friendly dates
+
 DBSession = scoped_session(sessionmaker(extension=ZopeTransactionExtension()))
 Base = declarative_base()
 
@@ -38,4 +42,24 @@ class Entry(Base):
     created = Column(DateTime, default=datetime.datetime.utcnow)
     edited = Column(DateTime, default=datetime.datetime.utcnow)
 
+    @classmethod
+    def all(cls):
+    	return DBSession.query(Entry).order_by(sa.desc(Entry.created))
+
+    @classmethod
+    def by_id(cls, id):
+        return DBSession.query(Entry).filter(Entry.id == id).first()
+
+    @property
+    def slug(self):
+        return urlify(self.title)
+
+    @property
+    def created_in_words(self):
+        return time_ago_in_words(self.created)
+
+    @classmethod
+    def get_paginator(cls, request, page=1):
+        page_url = PageURL_WebOb(request)
+        return Page(Entry.all(), page, url=page_url, items_per_page=5)
 #Index('my_index', MyModel.name, unique=True, mysql_length=255)
